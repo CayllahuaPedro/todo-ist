@@ -5,9 +5,13 @@ on:
   push:
     branches: [master]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: server
@@ -29,10 +33,10 @@ jobs:
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     concurrency:
       group: deploy-production
       cancel-in-progress: false
-    environment: production
     steps:
       - uses: actions/checkout@v4
 
