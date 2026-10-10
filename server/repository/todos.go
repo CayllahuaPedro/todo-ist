@@ -6,21 +6,21 @@ import (
 )
 
 type Task struct {
-	ID          int64
-	Title       string
-	Description sql.NullString
-	Status      string
-	Priority    int
-	ProjectID   int64
-	AssigneeID  sql.NullInt64
-	DueDate     sql.NullTime
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID          int64          `json:"id"`
+	Title       string         `json:"title"`
+	Description sql.NullString `json:"description"`
+	Status      string         `json:"status"`
+	Priority    int            `json:"priority"`
+	ProjectID   int64          `json:"project_id"`
+	AssigneeID  sql.NullInt64  `json:"assignee_id"`
+	DueDate     sql.NullTime   `json:"due_date"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 func GetAllTasks(db *sql.DB) ([]Task, error) {
 	rows, err := db.Query(`
-		SELECT *
+		SELECT id, title, description, status, created_at, updated_at
 		FROM tasks
 		ORDER BY created_at DESC
 	`)
@@ -53,7 +53,8 @@ func GetAllTasks(db *sql.DB) ([]Task, error) {
 func GetTaskById(db *sql.DB, id int) (*Task, error) {
 	var task Task
 	err := db.QueryRow(`
-		SELECT * FROM tasks
+		SELECT id, title, description, status, created_at, updated_at
+		FROM tasks
 		WHERE id = ?
 	`, id).Scan(
 		&task.ID,
@@ -63,18 +64,13 @@ func GetTaskById(db *sql.DB, id int) (*Task, error) {
 		&task.CreatedAt,
 		&task.UpdatedAt,
 	)
-	if err != sql.ErrNoRows {
-		return nil, nil
-	}
 	if err != nil {
 		return nil, err
 	}
-
 	return &task, nil
-
 }
 
-func createTodo(db *sql.DB, task *Task) error {
+func CreateTodo(db *sql.DB, task *Task) error {
 	now := time.Now()
 	result, err := db.Exec(`
 		INSERT INTO tasks (title, description, status, created_at, updated_at)
@@ -95,4 +91,30 @@ func createTodo(db *sql.DB, task *Task) error {
 
 	return nil
 
+}
+
+func UpdateTodo(db *sql.DB, task *Task) error {
+	now := time.Now()
+	_, err := db.Exec(`
+		UPDATE tasks SET
+		title = ?,
+		description = ?,
+		status = ?,
+		updated_at = ?
+		WHERE id = ?
+	`, task.Title, task.Description, task.Status, now, task.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteTodo(db *sql.DB, id int) error {
+	_, err := db.Exec(`
+		DELETE FROM tasks WHERE id = ?
+	`, id)
+	if err != nil {
+		return err
+	}
+	return nil
 }

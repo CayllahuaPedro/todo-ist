@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo-ist</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="masthead">
+        <h1>Todo-ist</h1>
+        <p id="summary" class="summary"></p>
+      </header>
+
+      <form id="new-task" class="composer" autocomplete="off">
+        <label for="title" class="visually-hidden">New task</label>
+        <input id="title" name="title" type="text" placeholder="What needs doing?" required />
+        <button type="submit">Add task</button>
+      </form>
+
+      <p id="notice" class="notice" role="status" aria-live="polite"></p>
+
+      <ul id="tasks" class="tasks" aria-label="Tasks"></ul>
+    </main>
+
+    <footer class="colophon">Derechos reservados by Pedrito Cayllahua</footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

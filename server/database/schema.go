@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     description TEXT,
     status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed', 'cancelled')),
     priority INTEGER NOT NULL DEFAULT 0 CHECK(priority BETWEEN 0 AND 3),
-    project_id INTEGER NOT NULL,
+    project_id INTEGER,
     assignee_id INTEGER,
     due_date DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
