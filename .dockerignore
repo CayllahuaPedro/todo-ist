@@ -1,0 +1,6 @@
+.git
+.atl
+.codegraph
+**/*.db
+**/*.db-shm
+**/*.db-wal

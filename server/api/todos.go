@@ -36,20 +36,22 @@ type createTaskRequest struct {
 	Status      Status `json:"status"`
 }
 
-type updateTaskRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Status      string `json:"status"`
-}
-
 func (req createTaskRequest) Validate() error {
 	if req.Title == "" {
-		return errors.New("email is required")
+		return errors.New("title is required")
 	}
 	if !req.Status.IsValid() {
-		return errors.New("el estado es invalido")
+		return errors.New("invalid status")
 	}
 	return nil
+}
+
+func (db DBHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("GET /todos", db.GetTodos)
+	mux.HandleFunc("GET /todos/{id}", db.GetTodo)
+	mux.HandleFunc("POST /todos", db.CreateTodo)
+	mux.HandleFunc("PATCH /todos/{id}", db.UpdateTodo)
+	mux.HandleFunc("DELETE /todos/{id}", db.DeleteTodo)
 }
 
 func (db DBHandler) GetTodos(w http.ResponseWriter, r *http.Request) {
@@ -71,12 +73,8 @@ func (db DBHandler) GetTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	task, err := repository.GetTaskById(db.DB, id)
-	if errors.Is(err, sql.ErrNoRows) {
-		http.Error(w, "task not found", http.StatusNotFound)
-		return
-	}
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeRepositoryError(w, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -139,7 +137,7 @@ func (db DBHandler) UpdateTodo(w http.ResponseWriter, r *http.Request) {
 		Status: string(req.Status),
 	}
 	if err := repository.UpdateTodo(db.DB, &task); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeRepositoryError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -152,8 +150,16 @@ func (db DBHandler) DeleteTodo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := repository.DeleteTodo(db.DB, id); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeRepositoryError(w, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func writeRepositoryError(w http.ResponseWriter, err error) {
+	if errors.Is(err, sql.ErrNoRows) {
+		http.Error(w, "task not found", http.StatusNotFound)
+		return
+	}
+	http.Error(w, err.Error(), http.StatusInternalServerError)
 }

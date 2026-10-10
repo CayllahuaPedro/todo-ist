@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/subtle"
 	"errors"
 	"log"
 	"net/http"
@@ -14,7 +15,7 @@ import (
 )
 
 func main() {
-	db, err := database.InitDB("todo-ist.db")
+	db, err := database.InitDB(getenv("DB_PATH", "todo-ist.db"))
 	if err != nil {
 		log.Fatal("Failed to initialize database:", err)
 	}
@@ -26,16 +27,12 @@ func main() {
 		DB: db,
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /todos", dbHandler.GetTodos)
-	mux.HandleFunc("GET /todos/{id}", dbHandler.GetTodo)
-	mux.HandleFunc("POST /todos", dbHandler.CreateTodo)
-	mux.HandleFunc("PATCH /todos/{id}", dbHandler.UpdateTodo)
-	mux.HandleFunc("DELETE /todos/{id}", dbHandler.DeleteTodo)
-	mux.Handle("GET /", http.FileServer(http.Dir("../app")))
+	dbHandler.RegisterRoutes(mux)
+	mux.Handle("GET /", http.FileServer(http.Dir(getenv("STATIC_DIR", "../app"))))
 
 	srv := &http.Server{
-		Addr:              ":8080",
-		Handler:           mux,
+		Addr:              ":" + getenv("PORT", "8080"),
+		Handler:           basicAuth(mux),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -52,4 +49,30 @@ func main() {
 		log.Println("shutdown error:", err)
 	}
 
+}
+
+func getenv(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
+
+func basicAuth(next http.Handler) http.Handler {
+	user := os.Getenv("BASIC_AUTH_USER")
+	pass := os.Getenv("BASIC_AUTH_PASS")
+	if user == "" || pass == "" {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u, p, ok := r.BasicAuth()
+		if !ok ||
+			subtle.ConstantTimeCompare([]byte(u), []byte(user)) != 1 ||
+			subtle.ConstantTimeCompare([]byte(p), []byte(pass)) != 1 {
+			w.Header().Set("WWW-Authenticate", `Basic realm="todo-ist"`)
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

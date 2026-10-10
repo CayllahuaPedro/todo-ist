@@ -83,7 +83,7 @@ func CreateTodo(db *sql.DB, task *Task) error {
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return nil
+		return err
 	}
 	task.ID = id
 	task.CreatedAt = now
@@ -95,7 +95,7 @@ func CreateTodo(db *sql.DB, task *Task) error {
 
 func UpdateTodo(db *sql.DB, task *Task) error {
 	now := time.Now()
-	_, err := db.Exec(`
+	result, err := db.Exec(`
 		UPDATE tasks SET
 		title = ?,
 		description = ?,
@@ -106,15 +106,26 @@ func UpdateTodo(db *sql.DB, task *Task) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	return requireAffected(result)
 }
 
 func DeleteTodo(db *sql.DB, id int) error {
-	_, err := db.Exec(`
+	result, err := db.Exec(`
 		DELETE FROM tasks WHERE id = ?
 	`, id)
 	if err != nil {
 		return err
+	}
+	return requireAffected(result)
+}
+
+func requireAffected(result sql.Result) error {
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
 	}
 	return nil
 }
